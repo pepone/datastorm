@@ -1,46 +1,44 @@
 //
 // Copyright (c) ZeroC, Inc. All rights reserved.
 //
-#include <DataStorm/ConnectionManager.h>
-#include <DataStorm/CallbackExecutor.h>
+
+#include "ConnectionManager.h"
+#include "CallbackExecutor.h"
+
+#include <iostream>
 
 using namespace std;
 using namespace DataStormI;
 
-ConnectionManager::ConnectionManager(const shared_ptr<CallbackExecutor>& executor) :
-    _executor(executor)
-{
-}
+ConnectionManager::ConnectionManager(const shared_ptr<CallbackExecutor>& executor) : _executor(executor) {}
 
 void
-ConnectionManager::add(const shared_ptr<void>& object,
-                       const shared_ptr<Ice::Connection>& connection,
-                       function<void(const shared_ptr<Ice::Connection>&, exception_ptr)> callback)
+ConnectionManager::add(
+    const shared_ptr<void>& object,
+    const Ice::ConnectionPtr& connection,
+    function<void(const Ice::ConnectionPtr&, exception_ptr)> callback)
 {
     lock_guard<mutex> lock(_mutex);
     auto& objects = _connections[connection];
-    if(objects.empty())
+    if (objects.empty())
     {
-        connection->setCloseCallback([self=shared_from_this()](const shared_ptr<Ice::Connection>& con)
-        {
-            self->remove(con);
-        });
+        connection->setCloseCallback([self = shared_from_this()](const Ice::ConnectionPtr& con) { self->remove(con); });
     }
-    objects.emplace(move(object), move(callback));
+    objects.emplace(std::move(object), std::move(callback));
 }
 
 void
-ConnectionManager::remove(const shared_ptr<void>& object, const shared_ptr<Ice::Connection>& connection)
+ConnectionManager::remove(const shared_ptr<void>& object, const Ice::ConnectionPtr& connection)
 {
     lock_guard<mutex> lock(_mutex);
     auto p = _connections.find(connection);
-    if(p == _connections.end())
+    if (p == _connections.end())
     {
         return;
     }
     auto& objects = p->second;
     objects.erase(object);
-    if(objects.empty())
+    if (objects.empty())
     {
         connection->setCloseCallback(nullptr);
         _connections.erase(p);
@@ -48,13 +46,13 @@ ConnectionManager::remove(const shared_ptr<void>& object, const shared_ptr<Ice::
 }
 
 void
-ConnectionManager::remove(const shared_ptr<Ice::Connection>& connection)
+ConnectionManager::remove(const Ice::ConnectionPtr& connection)
 {
     map<shared_ptr<void>, Callback> objects;
     {
         lock_guard<mutex> lock(_mutex);
         auto p = _connections.find(connection);
-        if(p == _connections.end())
+        if (p == _connections.end())
         {
             return;
         }
@@ -67,17 +65,17 @@ ConnectionManager::remove(const shared_ptr<Ice::Connection>& connection)
     {
         connection->getInfo();
     }
-    catch(const std::exception&)
+    catch (const std::exception&)
     {
         ex = current_exception();
     }
-    for(const auto& object : objects)
+    for (const auto& object : objects)
     {
         try
         {
             object.second(connection, ex);
         }
-        catch(const std::exception& ex)
+        catch (const std::exception& ex)
         {
             cerr << ex.what() << endl;
             assert(false);
@@ -91,7 +89,7 @@ void
 ConnectionManager::destroy()
 {
     lock_guard<mutex> lock(_mutex);
-    for(const auto& connection : _connections)
+    for (const auto& connection : _connections)
     {
         connection.first->setCloseCallback(nullptr);
     }

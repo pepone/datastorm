@@ -2,15 +2,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 //
 
-#include <DataStorm/NodeI.h>
-#include <DataStorm/Instance.h>
-#include <DataStorm/SessionI.h>
-#include <DataStorm/NodeSessionManager.h>
-#include <DataStorm/NodeSessionI.h>
-#include <DataStorm/NodeI.h>
-#include <DataStorm/TopicFactoryI.h>
-#include <DataStorm/TraceUtil.h>
-#include <DataStorm/CallbackExecutor.h>
+#include "NodeI.h"
+#include "CallbackExecutor.h"
+#include "Instance.h"
+#include "NodeSessionI.h"
+#include "NodeSessionManager.h"
+#include "SessionI.h"
+#include "TopicFactoryI.h"
+#include "TraceUtil.h"
 
 using namespace std;
 using namespace DataStormI;
@@ -19,39 +18,37 @@ using namespace DataStormContract;
 namespace
 {
 
-class DispatchInterceptorI : public Ice::DispatchInterceptor
-{
-public:
-
-    DispatchInterceptorI(shared_ptr<NodeI> node, shared_ptr<CallbackExecutor> executor) :
-        _node(move(node)), _executor(move(executor))
+    class DispatchInterceptorI : public Ice::Object
     {
-    }
-
-    virtual bool dispatch(Ice::Request& req) override
-    {
-        auto session = _node->getSession(req.getCurrent().id);
-        if(!session)
+    public:
+        DispatchInterceptorI(shared_ptr<NodeI> node, shared_ptr<CallbackExecutor> executor)
+            : _node(std::move(node)),
+              _executor(std::move(executor))
         {
-            throw Ice::ObjectNotExistException(__FILE__, __LINE__);
         }
-        auto sync = session->ice_dispatch(req);
-        _executor->flush();
-        return sync;
-    }
 
-private:
+        void dispatch(Ice::IncomingRequest& request, std::function<void(Ice::OutgoingResponse)> sendResponse) final
+        {
+            auto session = _node->getSession(request.current().id);
+            if (!session)
+            {
+                throw Ice::ObjectNotExistException(__FILE__, __LINE__);
+            }
+            session->dispatch(request, std::move(sendResponse));
+            _executor->flush();
+        }
 
-    shared_ptr<NodeI> _node;
-    shared_ptr<CallbackExecutor> _executor;
-};
+    private:
+        shared_ptr<NodeI> _node;
+        shared_ptr<CallbackExecutor> _executor;
+    };
 
 }
 
-NodeI::NodeI(const shared_ptr<Instance>& instance) :
-    _instance(instance),
-    _nextSubscriberSessionId(0),
-    _nextPublisherSessionId(0)
+NodeI::NodeI(const shared_ptr<Instance>& instance)
+    : _instance(instance),
+      _nextSubscriberSessionId(0),
+      _nextPublisherSessionId(0)
 {
 }
 
@@ -68,7 +65,7 @@ NodeI::init()
 {
     auto self = shared_from_this();
     auto instance = getInstance();
-    auto forwarder = [self=shared_from_this()](Ice::ByteSeq e, const Ice::Current& c) { self->forward(e, c); };
+    auto forwarder = [self = shared_from_this()](Ice::ByteSeq e, const Ice::Current& c) { self->forward(e, c); };
     _subscriberForwarder = Ice::uncheckedCast<SubscriberSessionPrx>(instance->getCollocatedForwarder()->add(forwarder));
     _publisherForwarder = Ice::uncheckedCast<PublisherSessionPrx>(instance->getCollocatedForwarder()->add(forwarder));
     try
@@ -80,7 +77,7 @@ NodeI::init()
         adapter->addDefaultServant(interceptor, "s");
         adapter->addDefaultServant(interceptor, "p");
     }
-    catch(const Ice::ObjectAdapterDeactivatedException&)
+    catch (const Ice::ObjectAdapterDeactivatedException&)
     {
     }
 }
@@ -89,32 +86,41 @@ void
 NodeI::destroy(bool ownsCommunicator)
 {
     unique_lock<mutex> lock(_mutex);
-    if(!ownsCommunicator)
+    if (!ownsCommunicator)
     {
         //
         // Notifies peer sessions of the disconnection.
         //
-        auto disconnect = [](auto p)
+        for (const auto& p : _subscribers)
         {
             auto s = p.second->getSession();
-            if(s)
+            if (s)
             {
                 try
                 {
-                    s->disconnectedAsync();
+                    // TODO check the return value?
+                    auto _ = s->disconnectedAsync();
                 }
-                catch(const Ice::LocalException&)
+                catch (const Ice::LocalException&)
                 {
                 }
             }
-        };
-        for(const auto& p : _subscribers)
-        {
-            disconnect(p);
         }
-        for(const auto& p : _publishers)
+
+        for (const auto& p : _publishers)
         {
-            disconnect(p);
+            auto s = p.second->getSession();
+            if (s)
+            {
+                try
+                {
+                    // TODO check the return value?
+                    auto _ = s->disconnectedAsync();
+                }
+                catch (const Ice::LocalException&)
+                {
+                }
+            }
         }
     }
     _subscribers.clear();
@@ -124,26 +130,28 @@ NodeI::destroy(bool ownsCommunicator)
 }
 
 void
-NodeI::initiateCreateSession(shared_ptr<NodePrx> publisher, const Ice::Current& current)
+NodeI::initiateCreateSession(optional<NodePrx> publisher, const Ice::Current& current)
 {
-    if (publisher == nullptr)
+    if (publisher == nullopt)
     {
+        // TODO throw if the publisher is null?
         return;
     }
 
     //
     // Create a session with the given publisher.
     //
-    createPublisherSession(move(publisher), current.con, nullptr);
+    createPublisherSession(std::move(publisher), current.con, nullptr);
 }
 
 void
-NodeI::createSession(shared_ptr<NodePrx> subscriber,
-                     shared_ptr<SubscriberSessionPrx> subscriberSession,
-                     bool fromRelay,
-                     const Ice::Current& current)
+NodeI::createSession(
+    optional<NodePrx> subscriber,
+    optional<SubscriberSessionPrx> subscriberSession,
+    bool fromRelay,
+    const Ice::Current& current)
 {
-    if (subscriber == nullptr || subscriberSession == nullptr)
+    if (subscriber == nullopt || subscriberSession == nullopt)
     {
         return;
     }
@@ -152,7 +160,7 @@ NodeI::createSession(shared_ptr<NodePrx> subscriber,
     try
     {
         auto s = subscriber;
-        if(fromRelay)
+        if (fromRelay)
         {
             //
             // If the call is from a relay, we check if we already have a connection to this node
@@ -162,89 +170,89 @@ NodeI::createSession(shared_ptr<NodePrx> subscriber,
             //
             s = getNodeWithExistingConnection(subscriber, current.con);
         }
-        else if(current.con)
+        else if (current.con)
         {
             s = subscriber->ice_fixed(current.con);
         }
 
         unique_lock<mutex> lock(_mutex);
         session = createPublisherSessionServant(subscriber);
-        if(!session || session->checkSession())
+        if (!session || session->checkSession())
         {
             return; // Shutting down or already connected
         }
 
         auto self = shared_from_this();
-        s->ice_getConnectionAsync([=](auto connection) mutable
-        {
-            if(session->checkSession())
+        s->ice_getConnectionAsync(
+            [=, this](auto connection) mutable
             {
-                return;
-            }
+                if (session->checkSession())
+                {
+                    return;
+                }
 
-            if(connection && !connection->getAdapter())
-            {
-                connection->setAdapter(getInstance()->getObjectAdapter());
-            }
+                if (connection && !connection->getAdapter())
+                {
+                    connection->setAdapter(getInstance()->getObjectAdapter());
+                }
 
-            if(connection)
-            {
-                subscriberSession = subscriberSession->ice_fixed(connection);
-            }
+                if (connection)
+                {
+                    subscriberSession = subscriberSession->ice_fixed(connection);
+                }
 
-            try
-            {
-                // Must be called before connected
-                s->confirmCreateSessionAsync(_proxy,
-                                             session->getProxy<PublisherSessionPrx>(),
-                                             nullptr,
-                                             [=](auto ex)
-                                             {
-                                                self->removePublisherSession(subscriber, session, ex);
-                                             });
-                assert(!s->ice_getCachedConnection() || s->ice_getCachedConnection() == connection);
-                session->connected(subscriberSession, connection, getInstance()->getTopicFactory()->getTopicWriters());
-            }
-            catch(const Ice::LocalException&)
-            {
-                removePublisherSession(subscriber, session, current_exception());
-            }
-        },
-        [=](auto ex)
-        {
-            self->removePublisherSession(subscriber, session, ex);
-        });
+                try
+                {
+                    // Must be called before connected
+                    s->confirmCreateSessionAsync(
+                        _proxy,
+                        session->getProxy<PublisherSessionPrx>(),
+                        nullptr,
+                        [=](auto ex) { self->removePublisherSession(subscriber, session, ex); });
+                    assert(!s->ice_getCachedConnection() || s->ice_getCachedConnection() == connection);
+                    session->connected(
+                        subscriberSession,
+                        connection,
+                        getInstance()->getTopicFactory()->getTopicWriters());
+                }
+                catch (const Ice::LocalException&)
+                {
+                    removePublisherSession(subscriber, session, current_exception());
+                }
+            },
+            [=](auto ex) { self->removePublisherSession(subscriber, session, ex); });
     }
-    catch(const Ice::LocalException&)
+    catch (const Ice::LocalException&)
     {
         removePublisherSession(subscriber, session, current_exception());
     }
 }
 
 void
-NodeI::confirmCreateSession(shared_ptr<NodePrx> publisher,
-                            shared_ptr<PublisherSessionPrx> publisherSession,
-                            const Ice::Current& current)
+NodeI::confirmCreateSession(
+    optional<NodePrx> publisher,
+    optional<PublisherSessionPrx> publisherSession,
+    const Ice::Current& current)
 {
-    if (publisher == nullptr || publisherSession == nullptr)
+    if (publisher == nullopt || publisherSession == nullopt)
     {
         return;
     }
 
     unique_lock<mutex> lock(_mutex);
     auto p = _subscribers.find(publisher->ice_getIdentity());
-    if(p == _subscribers.end())
+    if (p == _subscribers.end())
     {
         return;
     }
 
     auto session = p->second;
-    if(session->checkSession())
+    if (session->checkSession())
     {
         return;
     }
 
-    if(current.con && publisherSession->ice_getEndpoints().empty() && publisherSession->ice_getAdapterId().empty())
+    if (current.con && publisherSession->ice_getEndpoints().empty() && publisherSession->ice_getAdapterId().empty())
     {
         publisherSession = publisherSession->ice_fixed(current.con);
     }
@@ -253,114 +261,107 @@ NodeI::confirmCreateSession(shared_ptr<NodePrx> publisher,
 }
 
 void
-NodeI::createSubscriberSession(shared_ptr<NodePrx> subscriber,
-                               const shared_ptr<Ice::Connection>& connection,
-                               const shared_ptr<PublisherSessionI>& session)
+NodeI::createSubscriberSession(
+    optional<NodePrx> subscriber,
+    const shared_ptr<Ice::Connection>& connection,
+    const shared_ptr<PublisherSessionI>& session)
 {
     try
     {
         subscriber = getNodeWithExistingConnection(subscriber, connection);
 
         auto self = shared_from_this();
-        subscriber->ice_getConnectionAsync([=](auto connection)
-        {
-            if(connection && !connection->getAdapter())
+        subscriber->ice_getConnectionAsync(
+            [=, this](auto connection)
             {
-                connection->setAdapter(getInstance()->getObjectAdapter());
-            }
-            subscriber->initiateCreateSessionAsync(_proxy,
-                                                   nullptr,
-                                                   [=](auto ex)
-                                                   {
-                                                      self->removePublisherSession(subscriber, session, ex);
-                                                   });
-        },
-        [=](auto ex)
-        {
-            self->removePublisherSession(subscriber, session, ex);
-        });
+                if (connection && !connection->getAdapter())
+                {
+                    connection->setAdapter(getInstance()->getObjectAdapter());
+                }
+                subscriber->initiateCreateSessionAsync(
+                    _proxy,
+                    nullptr,
+                    [=](auto ex) { self->removePublisherSession(subscriber, session, ex); });
+            },
+            [=](auto ex) { self->removePublisherSession(subscriber, session, ex); });
     }
-    catch(const Ice::LocalException&)
+    catch (const Ice::LocalException&)
     {
         removePublisherSession(subscriber, session, current_exception());
     }
 }
 
 void
-NodeI::createPublisherSession(const shared_ptr<NodePrx>& publisher,
-                              const shared_ptr<Ice::Connection>& con,
-                              shared_ptr<SubscriberSessionI> session)
+NodeI::createPublisherSession(
+    optional<NodePrx> publisher,
+    const shared_ptr<Ice::Connection>& con,
+    shared_ptr<SubscriberSessionI> session)
 {
     try
     {
         auto p = getNodeWithExistingConnection(publisher, con);
 
         unique_lock<mutex> lock(_mutex);
-        if(!session)
+        if (!session)
         {
             session = createSubscriberSessionServant(publisher);
-            if(!session)
+            if (!session)
             {
                 return; // Shutting down.
             }
         }
 
         auto self = shared_from_this();
-        p->ice_getConnectionAsync([=](auto connection)
-        {
-            if(session->checkSession())
+        p->ice_getConnectionAsync(
+            [=, this](auto connection)
             {
-                return;
-            }
+                if (session->checkSession())
+                {
+                    return;
+                }
 
-            if(connection && !connection->getAdapter())
-            {
-                connection->setAdapter(getInstance()->getObjectAdapter());
-            }
+                if (connection && !connection->getAdapter())
+                {
+                    connection->setAdapter(getInstance()->getObjectAdapter());
+                }
 
-            try
-            {
-                p->createSessionAsync(_proxy,
-                                      session->getProxy<SubscriberSessionPrx>(),
-                                      false,
-                                      nullptr,
-                                      [=](auto ex)
-                                      {
-                                        self->removeSubscriberSession(publisher, session, ex);
-                                      });
-            }
-            catch(const Ice::LocalException&)
-            {
-                removeSubscriberSession(publisher, session, current_exception());
-            }
-        },
-        [=](auto ex)
-        {
-            self->removeSubscriberSession(publisher, session, ex);
-        });
+                try
+                {
+                    p->createSessionAsync(
+                        _proxy,
+                        session->getProxy<SubscriberSessionPrx>(),
+                        false,
+                        nullptr,
+                        [=](auto ex) { self->removeSubscriberSession(publisher, session, ex); });
+                }
+                catch (const Ice::LocalException&)
+                {
+                    removeSubscriberSession(publisher, session, current_exception());
+                }
+            },
+            [=](auto ex) { self->removeSubscriberSession(publisher, session, ex); });
     }
-    catch(const Ice::LocalException&)
+    catch (const Ice::LocalException&)
     {
         removeSubscriberSession(publisher, session, current_exception());
     }
 }
 
 void
-NodeI::removeSubscriberSession(const shared_ptr<NodePrx>& node,
-                               const shared_ptr<SubscriberSessionI>& session,
-                               const exception_ptr& ex)
+NodeI::removeSubscriberSession(
+    optional<NodePrx> node,
+    const shared_ptr<SubscriberSessionI>& session,
+    const exception_ptr& ex)
 {
-    if(session && !session->retry(node, ex))
+    if (session && !session->retry(node, ex))
     {
         unique_lock<mutex> lock(_mutex);
         auto sessionNode = session->getNode();
-        if (!session->checkSession() &&
-            node != nullptr &&
-            sessionNode != nullptr &&
+        if (!session->checkSession() && node && sessionNode &&
             node->ice_getIdentity() == sessionNode->ice_getIdentity())
         {
             auto p = _subscribers.find(sessionNode->ice_getIdentity());
-            if(p != _subscribers.end() && p->second == session)
+            if (p != _subscribers.end() && p->second == session)
             {
                 _subscribers.erase(p);
                 _subscriberSessions.erase(session->getProxy()->ice_getIdentity());
@@ -371,21 +372,20 @@ NodeI::removeSubscriberSession(const shared_ptr<NodePrx>& node,
 }
 
 void
-NodeI::removePublisherSession(const shared_ptr<NodePrx>& node,
-                              const shared_ptr<PublisherSessionI>& session,
-                              const exception_ptr& ex)
+NodeI::removePublisherSession(
+    optional<NodePrx> node,
+    const shared_ptr<PublisherSessionI>& session,
+    const exception_ptr& ex)
 {
-    if(session && !session->retry(node, ex))
+    if (session && !session->retry(node, ex))
     {
         unique_lock<mutex> lock(_mutex);
         auto sessionNode = session->getNode();
-        if (!session->checkSession() &&
-            node != nullptr &&
-            sessionNode != nullptr &&
+        if (!session->checkSession() && node && sessionNode &&
             node->ice_getIdentity() == sessionNode->ice_getIdentity())
         {
             auto p = _publishers.find(sessionNode->ice_getIdentity());
-            if(p != _publishers.end() && p->second == session)
+            if (p != _publishers.end() && p->second == session)
             {
                 _publishers.erase(p);
                 _publisherSessions.erase(session->getProxy()->ice_getIdentity());
@@ -399,7 +399,7 @@ shared_ptr<Ice::Connection>
 NodeI::getSessionConnection(const string& id) const
 {
     auto session = getSession(Ice::stringToIdentity(id));
-    if(session)
+    if (session)
     {
         return session->getConnection();
     }
@@ -413,18 +413,18 @@ shared_ptr<SessionI>
 NodeI::getSession(const Ice::Identity& ident) const
 {
     unique_lock<mutex> lock(_mutex);
-    if(ident.category == "s")
+    if (ident.category == "s")
     {
         auto p = _subscriberSessions.find(ident);
-        if(p != _subscriberSessions.end())
+        if (p != _subscriberSessions.end())
         {
             return p->second;
         }
     }
-    else if(ident.category == "p")
+    else if (ident.category == "p")
     {
         auto p = _publisherSessions.find(ident);
-        if(p != _publisherSessions.end())
+        if (p != _publisherSessions.end())
         {
             return p->second;
         }
@@ -433,10 +433,10 @@ NodeI::getSession(const Ice::Identity& ident) const
 }
 
 shared_ptr<SubscriberSessionI>
-NodeI::createSubscriberSessionServant(const shared_ptr<NodePrx>& node)
+NodeI::createSubscriberSessionServant(optional<NodePrx> node)
 {
     auto p = _subscribers.find(node->ice_getIdentity());
-    if(p != _subscribers.end())
+    if (p != _subscribers.end())
     {
         p->second->setNode(node);
         return p->second;
@@ -448,13 +448,13 @@ NodeI::createSubscriberSessionServant(const shared_ptr<NodePrx>& node)
             auto session = make_shared<SubscriberSessionI>(shared_from_this(), node);
             ostringstream os;
             os << ++_nextSubscriberSessionId;
-            auto prx = getInstance()->getObjectAdapter()->createProxy({ os.str(), "s" })->ice_oneway();
+            auto prx = getInstance()->getObjectAdapter()->createProxy({os.str(), "s"})->ice_oneway();
             session->init(Ice::uncheckedCast<SessionPrx>(prx));
             _subscribers.emplace(node->ice_getIdentity(), session);
             _subscriberSessions.emplace(session->getProxy()->ice_getIdentity(), session);
             return session;
         }
-        catch(const Ice::ObjectAdapterDeactivatedException&)
+        catch (const Ice::ObjectAdapterDeactivatedException&)
         {
             return nullptr;
         }
@@ -462,10 +462,10 @@ NodeI::createSubscriberSessionServant(const shared_ptr<NodePrx>& node)
 }
 
 shared_ptr<PublisherSessionI>
-NodeI::createPublisherSessionServant(const shared_ptr<NodePrx>& node)
+NodeI::createPublisherSessionServant(optional<NodePrx> node)
 {
     auto p = _publishers.find(node->ice_getIdentity());
-    if(p != _publishers.end())
+    if (p != _publishers.end())
     {
         p->second->setNode(node);
         return p->second;
@@ -477,13 +477,13 @@ NodeI::createPublisherSessionServant(const shared_ptr<NodePrx>& node)
             auto session = make_shared<PublisherSessionI>(shared_from_this(), node);
             ostringstream os;
             os << ++_nextPublisherSessionId;
-            auto prx = getInstance()->getObjectAdapter()->createProxy({ os.str(), "p" })->ice_oneway();
+            auto prx = getInstance()->getObjectAdapter()->createProxy({os.str(), "p"})->ice_oneway();
             session->init(Ice::uncheckedCast<SessionPrx>(prx));
             _publishers.emplace(node->ice_getIdentity(), session);
             _publisherSessions.emplace(session->getProxy()->ice_getIdentity(), session);
             return session;
         }
-        catch(const Ice::ObjectAdapterDeactivatedException&)
+        catch (const Ice::ObjectAdapterDeactivatedException&)
         {
             return nullptr;
         }
@@ -494,32 +494,35 @@ void
 NodeI::forward(const Ice::ByteSeq& inEncaps, const Ice::Current& current) const
 {
     lock_guard<mutex> lock(_mutex);
-    if(current.id == _subscriberForwarder->ice_getIdentity())
+    if (current.id == _subscriberForwarder->ice_getIdentity())
     {
-        for(const auto& s : _subscribers)
+        for (const auto& s : _subscribers)
         {
-            shared_ptr<SessionPrx> session = s.second->getSession();
-            if(session)
+            optional<SessionPrx> session = s.second->getSession();
+            if (session)
             {
-                session->ice_invokeAsync(current.operation, current.mode, inEncaps, current.ctx);
+                // TODO check the return value?
+                auto _ = session->ice_invokeAsync(current.operation, current.mode, inEncaps, current.ctx);
             }
         }
     }
     else
     {
-        for(const auto& s : _publishers)
+        assert(current.id == _publisherForwarder->ice_getIdentity());
+        for (const auto& s : _publishers)
         {
-            shared_ptr<SessionPrx> session = s.second->getSession();
-            if(session)
+            optional<SessionPrx> session = s.second->getSession();
+            if (session)
             {
-                session->ice_invokeAsync(current.operation, current.mode, inEncaps, current.ctx);
+                // TODO check the return value?
+                auto _ = session->ice_invokeAsync(current.operation, current.mode, inEncaps, current.ctx);
             }
         }
     }
 }
 
-shared_ptr<NodePrx>
-NodeI::getNodeWithExistingConnection(const shared_ptr<NodePrx>& node, const shared_ptr<Ice::Connection>& con)
+optional<NodePrx>
+NodeI::getNodeWithExistingConnection(optional<NodePrx> node, const shared_ptr<Ice::Connection>& con)
 {
     shared_ptr<Ice::Connection> connection;
 
@@ -528,10 +531,10 @@ NodeI::getNodeWithExistingConnection(const shared_ptr<NodePrx>& node, const shar
     // node session's connection.
     //
     auto instance = _instance.lock();
-    if(instance)
+    if (instance)
     {
         auto nodeSession = instance->getNodeSessionManager()->getSession(node->ice_getIdentity());
-        if(nodeSession)
+        if (nodeSession)
         {
             connection = nodeSession->getConnection();
         }
@@ -544,13 +547,13 @@ NodeI::getNodeWithExistingConnection(const shared_ptr<NodePrx>& node, const shar
     {
         lock_guard<mutex> lock(_mutex);
         auto p = _subscribers.find(node->ice_getIdentity());
-        if(p != _subscribers.end())
+        if (p != _subscribers.end())
         {
             connection = p->second->getConnection();
         }
 
         auto q = _publishers.find(node->ice_getIdentity());
-        if(q != _publishers.end())
+        if (q != _publishers.end())
         {
             connection = q->second->getConnection();
         }
@@ -559,26 +562,26 @@ NodeI::getNodeWithExistingConnection(const shared_ptr<NodePrx>& node, const shar
     //
     // Make sure the connection is still valid.
     //
-    if(connection)
+    if (connection)
     {
         try
         {
             connection->throwException();
         }
-        catch(...)
+        catch (...)
         {
             connection = nullptr;
         }
     }
 
-    if(!connection && node->ice_getEndpoints().empty() && node->ice_getAdapterId().empty())
+    if (!connection && node->ice_getEndpoints().empty() && node->ice_getAdapterId().empty())
     {
         connection = con;
     }
 
-    if(connection)
+    if (connection)
     {
-        if(!connection->getAdapter())
+        if (!connection->getAdapter())
         {
             connection->setAdapter(instance->getObjectAdapter());
         }

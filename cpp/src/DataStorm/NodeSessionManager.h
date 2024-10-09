@@ -1,89 +1,98 @@
 //
 // Copyright (c) ZeroC, Inc. All rights reserved.
 //
-#pragma once
 
-#include <DataStorm/Config.h>
-#include <DataStorm/Contract.h>
+#ifndef DATASTORM_NODESESSIONMANAGER_H
+#define DATASTORM_NODESESSIONMANAGER_H
+
+#include "DataStorm/Config.h"
+#include "DataStorm/Contract.h"
 
 #include <Ice/Ice.h>
+
+// TODO temporary for unused parameter warnings
+#if defined(__clang__)
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
 
 namespace DataStormI
 {
 
-class NodeSessionI;
-class CallbackExecutor;
-class Instance;
-class TraceLevels;
-class NodeI;
+    class NodeSessionI;
+    class CallbackExecutor;
+    class Instance;
+    class TraceLevels;
+    class NodeI;
 
-class NodeSessionManager : public std::enable_shared_from_this<NodeSessionManager>
-{
-public:
-
-    NodeSessionManager(const std::shared_ptr<Instance>&, const std::shared_ptr<NodeI>&);
-
-    void init();
-
-    std::shared_ptr<NodeSessionI>
-    createOrGet(const std::shared_ptr<DataStormContract::NodePrx>&, const std::shared_ptr<Ice::Connection>&, bool);
-
-    void announceTopicReader(const std::string&,
-                             const std::shared_ptr<DataStormContract::NodePrx>&,
-                             const std::shared_ptr<Ice::Connection>& = nullptr) const;
-
-    void announceTopicWriter(const std::string&,
-                             const std::shared_ptr<DataStormContract::NodePrx>&,
-                             const std::shared_ptr<Ice::Connection>& = nullptr) const;
-
-    void announceTopics(const DataStormContract::StringSeq&,
-                        const DataStormContract::StringSeq&,
-                        const std::shared_ptr<DataStormContract::NodePrx>&,
-                        const std::shared_ptr<Ice::Connection>& = nullptr) const;
-
-    std::shared_ptr<NodeSessionI> getSession(const Ice::Identity&) const;
-    std::shared_ptr<NodeSessionI> getSession(const std::string& name) const
+    class NodeSessionManager : public std::enable_shared_from_this<NodeSessionManager>
     {
-        return getSession(Ice::Identity { name, ""});
-    }
+    public:
+        NodeSessionManager(const std::shared_ptr<Instance>&, const std::shared_ptr<NodeI>&);
 
-    void forward(const Ice::ByteSeq&, const Ice::Current&) const;
+        void init();
 
-private:
+        std::shared_ptr<NodeSessionI>
+        createOrGet(std::optional<DataStormContract::NodePrx>, const std::shared_ptr<Ice::Connection>&, bool);
 
-    void connect(const std::shared_ptr<DataStormContract::LookupPrx>&,
-                 const std::shared_ptr<DataStormContract::NodePrx>&);
+        void announceTopicReader(
+            const std::string&,
+            std::optional<DataStormContract::NodePrx>,
+            const std::shared_ptr<Ice::Connection>& = nullptr) const;
 
-    void connected(const std::shared_ptr<DataStormContract::NodePrx>&,
-                   const std::shared_ptr<DataStormContract::LookupPrx>&);
+        void announceTopicWriter(
+            const std::string&,
+            std::optional<DataStormContract::NodePrx>,
+            const std::shared_ptr<Ice::Connection>& = nullptr) const;
 
-    void disconnected(const std::shared_ptr<DataStormContract::NodePrx>&,
-                      const std::shared_ptr<DataStormContract::LookupPrx>&);
+        void announceTopics(
+            const DataStormContract::StringSeq&,
+            const DataStormContract::StringSeq&,
+            std::optional<DataStormContract::NodePrx>,
+            const std::shared_ptr<Ice::Connection>& = nullptr) const;
 
-    void destroySession(const std::shared_ptr<DataStormContract::NodePrx>&);
+        std::shared_ptr<NodeSessionI> getSession(const Ice::Identity&) const;
+        std::shared_ptr<NodeSessionI> getSession(const std::string& name) const
+        {
+            return getSession(Ice::Identity{name, ""});
+        }
 
-    std::shared_ptr<Instance> getInstance() const
-    {
-        auto instance = _instance.lock();
-        assert(instance);
-        return instance;
-    }
+        void forward(const Ice::ByteSeq&, const Ice::Current&) const;
 
-    const std::weak_ptr<Instance> _instance;
-    const std::shared_ptr<TraceLevels> _traceLevels;
-    const std::shared_ptr<DataStormContract::NodePrx> _nodePrx;
-    const bool _forwardToMulticast;
+    private:
+        void connect(std::optional<DataStormContract::LookupPrx>, std::optional<DataStormContract::NodePrx>);
 
-    mutable std::mutex _mutex;
+        void connected(std::optional<DataStormContract::NodePrx>, std::optional<DataStormContract::LookupPrx>);
 
-    int _retryCount;
+        void disconnected(std::optional<DataStormContract::NodePrx>, std::optional<DataStormContract::LookupPrx>);
 
-    std::map<Ice::Identity, std::shared_ptr<NodeSessionI>> _sessions;
-    std::map<Ice::Identity, std::pair<std::shared_ptr<DataStormContract::NodePrx>,
-                                      std::shared_ptr<DataStormContract::LookupPrx>>> _connectedTo;
+        void destroySession(std::optional<DataStormContract::NodePrx>);
 
-    mutable std::shared_ptr<Ice::Connection> _exclude;
-    std::shared_ptr<DataStormContract::LookupPrx> _forwarder;
-};
+        std::shared_ptr<Instance> getInstance() const
+        {
+            auto instance = _instance.lock();
+            assert(instance);
+            return instance;
+        }
+
+        const std::weak_ptr<Instance> _instance;
+        const std::shared_ptr<TraceLevels> _traceLevels;
+        const std::optional<DataStormContract::NodePrx> _nodePrx;
+        const bool _forwardToMulticast;
+
+        mutable std::mutex _mutex;
+
+        int _retryCount;
+
+        std::map<Ice::Identity, std::shared_ptr<NodeSessionI>> _sessions;
+        std::map<
+            Ice::Identity,
+            std::pair<std::optional<DataStormContract::NodePrx>, std::optional<DataStormContract::LookupPrx>>>
+            _connectedTo;
+
+        mutable std::shared_ptr<Ice::Connection> _exclude;
+        std::optional<DataStormContract::LookupPrx> _forwarder;
+    };
 
 }
+#endif

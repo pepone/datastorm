@@ -1041,7 +1041,7 @@ $1_installdir   = $$($1_home)/lib$$(call platform-var,installdir,$1,$$($$2_platf
 $1_libdir       ?= $$(strip $$(if $$(wildcard $$($1_installdir)),$$($1_installdir),$$($1_home)/lib))
 $1_includedir   ?= $$($1_home)/include
 endif
-$1_ldflags      ?= -l$1
+$1_ldflags      ?= -l$
 endef
 
 #

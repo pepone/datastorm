@@ -24,7 +24,7 @@ main(int argc, char* argv[])
         // Configure writers to not clear the history. We want the readers to receive
         // all the writer samples.
         //
-        topic.setWriterDefaultConfig({ Ice::nullopt, Ice::nullopt, DataStorm::ClearHistoryPolicy::Never });
+        topic.setWriterDefaultConfig({ std::nullopt, std::nullopt, DataStorm::ClearHistoryPolicy::Never });
 
         //
         // Instantiate the foo writer and wait for a reader to connect.

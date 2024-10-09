@@ -1,21 +1,21 @@
 //
 // Copyright (c) ZeroC, Inc. All rights reserved.
 //
-#include <DataStorm/TraceUtil.h>
 
-#include <Ice/Ice.h>
+#include "TraceUtil.h"
+#include "Ice/Ice.h"
 
 using namespace std;
 using namespace DataStormI;
 
-TraceLevels::TraceLevels(shared_ptr<Ice::Communicator> communicator) :
-    topic(0),
-    topicCat("Topic"),
-    data(0),
-    dataCat("Data"),
-    session(0),
-    sessionCat("Session"),
-    logger(communicator->getLogger())
+TraceLevels::TraceLevels(shared_ptr<Ice::Communicator> communicator)
+    : topic(0),
+      topicCat("Topic"),
+      data(0),
+      dataCat("Data"),
+      session(0),
+      sessionCat("Session"),
+      logger(communicator->getLogger())
 {
     auto properties = communicator->getProperties();
     const string keyBase = "DataStorm.Trace.";
