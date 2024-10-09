@@ -53,7 +53,7 @@ namespace DataStorm
 template<> struct Decoder<color>
 {
     static color
-    decode(const shared_ptr<Ice::Communicator>&, const vector<unsigned char>& data)
+    decode(const shared_ptr<Ice::Communicator>&, const vector<std::byte>& data)
     {
         return static_cast<color>(data[0]);
     }
@@ -61,10 +61,10 @@ template<> struct Decoder<color>
 
 template<> struct Encoder<color>
 {
-    static vector<unsigned char>
+    static vector<std::byte>
     encode(const shared_ptr<Ice::Communicator>&, const color& value)
     {
-        return { static_cast<unsigned char>(value) };
+        return { static_cast<std::byte>(value) };
     }
 };
 
