@@ -16,7 +16,8 @@ main(int argc, char* argv[])
         DataStorm::Node node(argc, argv);
 
         //
-        // Instantiates the "hello" topic. The topic uses strings for keys and values.
+        // Instantiates the "hello" topic. The topic uses strings for keys and
+        // values.
         //
         DataStorm::Topic<string, string> topic(node, "hello");
 
@@ -36,7 +37,7 @@ main(int argc, char* argv[])
         //
         writer.waitForNoReaders();
     }
-    catch(const std::exception& ex)
+    catch (const std::exception& ex)
     {
         cerr << ex.what() << endl;
         return 1;

@@ -16,7 +16,8 @@ main(int argc, char* argv[])
         DataStorm::Node node(argc, argv, "config.reader");
 
         //
-        // Instantiates the "hello" topic. The topic uses strings for keys and values.
+        // Instantiates the "hello" topic. The topic uses strings for keys and
+        // values.
         //
         DataStorm::Topic<string, string> topic(node, "hello");
 
@@ -24,10 +25,11 @@ main(int argc, char* argv[])
         // Configure readers to never clear the history. We want to receive all the
         // samples written by the writers.
         //
-        topic.setReaderDefaultConfig({ std::nullopt, std::nullopt, DataStorm::ClearHistoryPolicy::Never });
+        topic.setReaderDefaultConfig({std::nullopt, std::nullopt, DataStorm::ClearHistoryPolicy::Never});
 
         //
-        // Instantiate a filtered reader for keys matching the foo[ace] regular expression.
+        // Instantiate a filtered reader for keys matching the foo[ace] regular
+        // expression.
         //
         auto reader = DataStorm::makeFilteredKeyReader(topic, DataStorm::Filter<string>("_regex", "foo[ace]"));
 
@@ -43,7 +45,7 @@ main(int argc, char* argv[])
         sample = reader.getNextUnread();
         cout << sample.getKey() << " says " << sample.getValue() << "!" << endl;
     }
-    catch(const std::exception& ex)
+    catch (const std::exception& ex)
     {
         cerr << ex.what() << endl;
         return 1;

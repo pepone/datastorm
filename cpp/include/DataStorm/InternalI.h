@@ -15,7 +15,8 @@
 #include <vector>
 
 //
-// Private abstract API used by the template based API and the internal DataStorm implementation.
+// Private abstract API used by the template based API and the internal
+// DataStorm implementation.
 //
 namespace DataStormI
 {
@@ -273,5 +274,5 @@ namespace DataStormI
         virtual Ice::CommunicatorPtr getCommunicator() const = 0;
     };
 
-}
+} // namespace DataStormI
 #endif

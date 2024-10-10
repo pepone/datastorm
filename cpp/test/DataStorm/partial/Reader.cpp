@@ -3,8 +3,8 @@
 //
 #include <DataStorm/DataStorm.h>
 
-#include <TestCommon.h>
 #include <Test.h>
+#include <TestCommon.h>
 
 using namespace DataStorm;
 using namespace std;
@@ -22,10 +22,7 @@ main(int argc, char* argv[])
     config.clearHistory = ClearHistoryPolicy::Never;
     topic.setReaderDefaultConfig(config);
 
-    topic.setUpdater<float>("price", [](Stock& stock, float price)
-                            {
-                                stock.price = price;
-                            });
+    topic.setUpdater<float>("price", [](Stock& stock, float price) { stock.price = price; });
 
     {
         auto reader = makeSingleKeyReader(topic, "AAPL");
@@ -43,7 +40,8 @@ main(int argc, char* argv[])
         test(sample.getUpdateTag() == "price");
         test(sample.getValue().price == 18.0f);
 
-        // Late joining reader should still receive update events instead of partial updates
+        // Late joining reader should still receive update events instead of partial
+        // updates
         auto reader2 = makeSingleKeyReader(topic, "AAPL");
         sample = reader2.getNextUnread();
         test(sample.getEvent() == SampleEvent::Add);
@@ -57,7 +55,8 @@ main(int argc, char* argv[])
         test(sample.getEvent() == SampleEvent::PartialUpdate);
         test(sample.getValue().price == 18.0f);
 
-        // Late joining reader with limited sample count should receive one Update event and a PartialUpdate event
+        // Late joining reader with limited sample count should receive one Update
+        // event and a PartialUpdate event
         auto reader3 = makeSingleKeyReader(topic, "AAPL", "", ReaderConfig(2));
         sample = reader3.getNextUnread();
         test(sample.getEvent() == SampleEvent::Update);

@@ -11,11 +11,9 @@ void
 usage(const string& n)
 {
     cerr << "Usage: " << n << " [options]\n";
-    cerr <<
-        "Options:\n"
-        "-h, --help               Show this message.\n"
-        "-v, --version            Display the DataStorm version.\n"
-        ;
+    cerr << "Options:\n"
+            "-h, --help               Show this message.\n"
+            "-v, --version            Display the DataStorm version.\n";
 }
 
 int
@@ -26,16 +24,16 @@ main(int argc, char* argv[])
         //
         // Parse arguments.
         //
-        for(int i = 0; i < argc; ++i)
+        for (int i = 0; i < argc; ++i)
         {
             string arg = argv[i];
-            if(arg == "-v" || arg == "--version")
+            if (arg == "-v" || arg == "--version")
             {
                 // TODO use ICE_VERSION
                 cout << "x.x.x" << endl;
                 return 0;
             }
-            else if(arg == "-h" || arg == "--help")
+            else if (arg == "-h" || arg == "--help")
             {
                 usage(argv[0]);
                 return 0;
@@ -43,7 +41,8 @@ main(int argc, char* argv[])
         }
 
         //
-        // CtrlCHandler must be created before the node is created or any other threads are started.
+        // CtrlCHandler must be created before the node is created or any other
+        // threads are started.
         //
         Ice::CtrlCHandler ctrlCHandler;
 
@@ -52,7 +51,7 @@ main(int argc, char* argv[])
         //
         DataStorm::Node node(argc, argv);
 
-        if(argc > 1)
+        if (argc > 1)
         {
             cerr << "unrecognized arguments" << endl;
             usage(argv[0]);
@@ -68,7 +67,7 @@ main(int argc, char* argv[])
         //
         node.waitForShutdown();
     }
-    catch(const std::exception& ex)
+    catch (const std::exception& ex)
     {
         cerr << ex.what() << endl;
         return 1;

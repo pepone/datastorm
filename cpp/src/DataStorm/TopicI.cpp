@@ -37,7 +37,8 @@ namespace
         [](const shared_ptr<Sample>& previous, const shared_ptr<Sample>& next, const shared_ptr<Ice::Communicator>&)
     { next->setValue(previous); };
 
-    // The always match filter always matches the value, it's used by the any key reader/writer.
+    // The always match filter always matches the value, it's used by the any key
+    // reader/writer.
     class AlwaysMatchFilter : public Filter
     {
     public:
@@ -60,7 +61,7 @@ namespace
     };
     const auto alwaysMatchFilter = make_shared<AlwaysMatchFilter>();
 
-}
+} // namespace
 
 TopicI::TopicI(
     const weak_ptr<TopicFactoryI>& factory,
@@ -549,9 +550,9 @@ TopicI::attachElementsAck(
     }
 
     //
-    // Initialize samples on data elements once all the elements have been attached. This is
-    // important for the priority configuration in case 2 writers with different priorities are
-    // attached from the same session.
+    // Initialize samples on data elements once all the elements have been
+    // attached. This is important for the priority configuration in case 2
+    // writers with different priorities are attached from the same session.
     //
     for (auto initCb : initCallbacks)
     {

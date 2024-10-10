@@ -5,8 +5,8 @@
 #ifndef DATASTORM_SESSIONI_H
 #define DATASTORM_SESSIONI_H
 
-#include "NodeI.h"
 #include "DataStorm/Contract.h"
+#include "NodeI.h"
 
 #include "Ice/Ice.h"
 
@@ -378,5 +378,5 @@ namespace DataStormI
         virtual void remove() override;
     };
 
-}
+} // namespace DataStormI
 #endif

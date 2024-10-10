@@ -40,7 +40,7 @@ namespace
         shared_ptr<CallbackExecutor> _executor;
     };
 
-}
+} // namespace
 
 SessionI::SessionI(const std::shared_ptr<NodeI>& parent, optional<NodePrx> node)
     : _instance(parent->getInstance()),
@@ -61,9 +61,9 @@ SessionI::init(optional<SessionPrx> prx)
     _id = Ice::identityToString(prx->ice_getIdentity());
 
     //
-    // Even though the node register a default servant for sessions, we still need to
-    // register the session servant explicitly here to ensure collocation works. The
-    // default servant from the node is used for facet calls.
+    // Even though the node register a default servant for sessions, we still need
+    // to register the session servant explicitly here to ensure collocation
+    // works. The default servant from the node is used for facet calls.
     //
     _instance->getObjectAdapter()->add(
         make_shared<DispatchInterceptorI>(shared_from_this(), _instance->getCallbackExecutor()),
@@ -80,9 +80,9 @@ void
 SessionI::announceTopics(TopicInfoSeq topics, bool /*initialize*/, const Ice::Current&)
 {
     //
-    // Retain topics outside the synchronization. This is necessary to ensure the topic destructor
-    // doesn't get called within the synchronization. The topic destructor can callback on the
-    // session to disconnect.
+    // Retain topics outside the synchronization. This is necessary to ensure the
+    // topic destructor doesn't get called within the synchronization. The topic
+    // destructor can callback on the session to disconnect.
     //
     vector<shared_ptr<TopicI>> retained;
     {
@@ -134,9 +134,9 @@ void
 SessionI::attachTopic(TopicSpec spec, const Ice::Current&)
 {
     //
-    // Retain topics outside the synchronization. This is necessary to ensure the topic destructor
-    // doesn't get called within the synchronization. The topic destructor can callback on the
-    // session to disconnect.
+    // Retain topics outside the synchronization. This is necessary to ensure the
+    // topic destructor doesn't get called within the synchronization. The topic
+    // destructor can callback on the session to disconnect.
     //
     vector<shared_ptr<TopicI>> retained;
     {
@@ -458,7 +458,8 @@ SessionI::initSamples(int64_t topicId, DataSamplesSeq samplesSeq, const Ice::Cur
                     if (_traceLevels->session > 2)
                     {
                         Trace out(_traceLevels, _traceLevels->sessionCat);
-                        out << _id << ": initializing samples from `" << samples.id << "'" << " on [";
+                        out << _id << ": initializing samples from `" << samples.id << "'"
+                            << " on [";
                         for (auto q = k->getSubscribers().begin(); q != k->getSubscribers().end(); ++q)
                         {
                             if (q != k->getSubscribers().begin())
@@ -679,9 +680,10 @@ SessionI::retry(optional<NodePrx> node, exception_ptr exception)
         _retryCount = 0;
 
         //
-        // If we can't retry connecting to the node because we don't have its endpoints,
-        // we just wait for the duration of the last retry delay for the peer to reconnect.
-        // If it doesn't reconnect, we'll destroy this session after the timeout.
+        // If we can't retry connecting to the node because we don't have its
+        // endpoints, we just wait for the duration of the last retry delay for the
+        // peer to reconnect. If it doesn't reconnect, we'll destroy this session
+        // after the timeout.
         //
         auto delay = _instance->getRetryDelay(_instance->getRetryCount()) * 2;
 
@@ -698,8 +700,8 @@ SessionI::retry(optional<NodePrx> node, exception_ptr exception)
     else
     {
         //
-        // If we can retry the connection attempt, we schedule a timer to retry. Always
-        // retry immediately on the first attempt.
+        // If we can retry the connection attempt, we schedule a timer to retry.
+        // Always retry immediately on the first attempt.
         //
         auto delay = _retryCount == 0 ? 0ms : _instance->getRetryDelay(_retryCount - 1);
         ++_retryCount;
@@ -825,10 +827,11 @@ SessionI::checkSession()
             if (_connection)
             {
                 //
-                // Make sure the connection is still established. It's possible that the connection got closed
-                // and we're not notified yet by the connection manager. Check session explicitly check for the
-                // connection to make sure that if we get a session creation request from a peer (which might
-                // detect the connection closure before), it doesn't get ignored.
+                // Make sure the connection is still established. It's possible that the
+                // connection got closed and we're not notified yet by the connection
+                // manager. Check session explicitly check for the connection to make
+                // sure that if we get a session creation request from a peer (which
+                // might detect the connection closure before), it doesn't get ignored.
                 //
                 try
                 {

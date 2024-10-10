@@ -12,7 +12,8 @@ main(int argc, char* argv[])
     try
     {
         //
-        // CtrlCHandler::maskSignals() must be called before the node is created or any other threads are started.
+        // CtrlCHandler::maskSignals() must be called before the node is created or
+        // any other threads are started.
         //
         DataStorm::CtrlCHandler::maskSignals();
 
@@ -39,17 +40,17 @@ main(int argc, char* argv[])
         //
         // Prints out the received samples.
         //
-        reader.onSamples(nullptr, [](const DataStorm::Sample<int, string>& sample)
-        {
-            cout << "[" << sample.getKey() << "] received time: " << sample.getValue() << endl;
-        });
+        reader.onSamples(
+            nullptr,
+            [](const DataStorm::Sample<int, string>& sample)
+            { cout << "[" << sample.getKey() << "] received time: " << sample.getValue() << endl; });
 
         //
         // Exit once the user hits Ctrl-C to shutdown the node.
         //
         node.waitForShutdown();
     }
-    catch(const std::exception& ex)
+    catch (const std::exception& ex)
     {
         cerr << ex.what() << endl;
         return 1;

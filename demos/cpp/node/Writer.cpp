@@ -23,7 +23,8 @@ main(int argc, char* argv[])
         uniform_int_distribution<> id(1);
 
         //
-        // CtrlCHandler::maskSignals() must be called before the node or any other threads are started.
+        // CtrlCHandler::maskSignals() must be called before the node or any other
+        // threads are started.
         //
         DataStorm::CtrlCHandler::maskSignals();
 
@@ -48,11 +49,11 @@ main(int argc, char* argv[])
         //
         auto writer = DataStorm::makeSingleKeyWriter(topic, id(generator));
 
-        while(!node.isShutdown())
+        while (!node.isShutdown())
         {
             auto now = chrono::system_clock::to_time_t(chrono::system_clock::now());
             char timeString[100];
-            if(strftime(timeString, sizeof(timeString), "%x %X", localtime(&now)) == 0)
+            if (strftime(timeString, sizeof(timeString), "%x %X", localtime(&now)) == 0)
             {
                 timeString[0] = '\0';
             }
@@ -60,7 +61,7 @@ main(int argc, char* argv[])
             this_thread::sleep_for(chrono::seconds(1));
         }
     }
-    catch(const std::exception& ex)
+    catch (const std::exception& ex)
     {
         cerr << ex.what() << endl;
         return 1;

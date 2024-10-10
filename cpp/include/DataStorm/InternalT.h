@@ -216,8 +216,8 @@ namespace DataStormI
 
         void remove(V* v)
         {
-            // Make sure to declare the variable outside the synchronization in case the element needs
-            // to be deleted if it's not the same.
+            // Make sure to declare the variable outside the synchronization in case the
+            // element needs to be deleted if it's not the same.
             std::shared_ptr<V> e;
             std::lock_guard<std::mutex> lock(_mutex);
             auto p = _elements.find(v->get());
@@ -371,8 +371,7 @@ namespace DataStormI
             _hasValue = true;
         }
 
-        virtual const std::vector<std::byte>&
-        encode(const std::shared_ptr<Ice::Communicator>& communicator) override
+        virtual const std::vector<std::byte>& encode(const std::shared_ptr<Ice::Communicator>& communicator) override
         {
             if (_encodedValue.empty())
             {
@@ -581,4 +580,4 @@ namespace DataStormI
         std::map<std::string, std::unique_ptr<Factory>> _factories;
     };
 
-}
+} // namespace DataStormI

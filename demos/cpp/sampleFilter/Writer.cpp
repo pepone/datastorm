@@ -16,15 +16,16 @@ main(int argc, char* argv[])
         DataStorm::Node node(argc, argv, "config.writer");
 
         //
-        // Instantiates the "hello" topic. The topic uses strings for keys and values.
+        // Instantiates the "hello" topic. The topic uses strings for keys and
+        // values.
         //
         DataStorm::Topic<string, string> topic(node, "hello");
 
         //
-        // Configure writers to not clear the history. We want the readers to receive
-        // all the writer samples.
+        // Configure writers to not clear the history. We want the readers to
+        // receive all the writer samples.
         //
-        topic.setWriterDefaultConfig({ std::nullopt, std::nullopt, DataStorm::ClearHistoryPolicy::Never });
+        topic.setWriterDefaultConfig({std::nullopt, std::nullopt, DataStorm::ClearHistoryPolicy::Never});
 
         //
         // Instantiate the foo writer and wait for a reader to connect.
@@ -46,7 +47,7 @@ main(int argc, char* argv[])
         //
         topic.waitForNoReaders();
     }
-    catch(const std::exception& ex)
+    catch (const std::exception& ex)
     {
         cerr << ex.what() << endl;
         return 1;

@@ -5,9 +5,9 @@
 #ifndef DATASTORM_NODEI_H
 #define DATASTORM_NODEI_H
 
+#include "DataStorm/Contract.h"
 #include "DataStorm/InternalI.h"
 #include "ForwarderManager.h"
-#include "DataStorm/Contract.h"
 
 #include "Ice/Ice.h"
 
@@ -112,5 +112,5 @@ namespace DataStormI
         std::int64_t _nextPublisherSessionId;
     };
 
-}
+} // namespace DataStormI
 #endif

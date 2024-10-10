@@ -10,8 +10,7 @@ namespace DataStorm
 {
     template<> struct Encoder<chrono::system_clock::time_point>
     {
-        static vector<unsigned char>
-        encode(const chrono::system_clock::time_point& time)
+        static vector<unsigned char> encode(const chrono::system_clock::time_point& time)
         {
             assert(false); // Not used by the reader but it still needs to be declared.
             return vector<unsigned char>();
@@ -20,23 +19,22 @@ namespace DataStorm
 
     template<> struct Decoder<chrono::system_clock::time_point>
     {
-        static chrono::system_clock::time_point
-        decode(const vector<unsigned char>& data)
+        static chrono::system_clock::time_point decode(const vector<unsigned char>& data)
         {
             //
-            // Decode the number of seconds since epoch. The value is encoded in a way which
-            // doesn't depend on the platform endianess (little endian with variable number
-            // of bytes).
+            // Decode the number of seconds since epoch. The value is encoded in a way
+            // which doesn't depend on the platform endianess (little endian with
+            // variable number of bytes).
             //
             long long int value = 0;
-            for(auto p = data.rbegin(); p != data.rend(); ++p)
+            for (auto p = data.rbegin(); p != data.rend(); ++p)
             {
                 value = value * 256 + static_cast<long long int>(*p);
             }
             return std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(value));
         }
     };
-};
+}; // namespace DataStorm
 
 int
 main(int argc, char* argv[])
@@ -44,7 +42,8 @@ main(int argc, char* argv[])
     try
     {
         //
-        // CtrlCHandler::maskSignals() must be called before the node is created or any other threads are started.
+        // CtrlCHandler::maskSignals() must be called before the node is created or
+        // any other threads are started.
         //
         DataStorm::CtrlCHandler::maskSignals();
 
@@ -76,23 +75,25 @@ main(int argc, char* argv[])
         //
         // Prints out the received samples.
         //
-        reader.onSamples(nullptr, [](const DataStorm::Sample<string, chrono::system_clock::time_point>& sample)
-        {
-            auto time = chrono::system_clock::to_time_t(sample.getValue());
-            char timeString[100];
-            if(strftime(timeString, sizeof(timeString), "%x %X", localtime(&time)) == 0)
+        reader.onSamples(
+            nullptr,
+            [](const DataStorm::Sample<string, chrono::system_clock::time_point>& sample)
             {
-                timeString[0] = '\0';
-            }
-            cout << "received time for `" << sample.getKey() << "': " << timeString << endl;
-        });
+                auto time = chrono::system_clock::to_time_t(sample.getValue());
+                char timeString[100];
+                if (strftime(timeString, sizeof(timeString), "%x %X", localtime(&time)) == 0)
+                {
+                    timeString[0] = '\0';
+                }
+                cout << "received time for `" << sample.getKey() << "': " << timeString << endl;
+            });
 
         //
         // Exit once the user hits Ctrl-C to shutdown the node.
         //
         node.waitForShutdown();
     }
-    catch(const std::exception& ex)
+    catch (const std::exception& ex)
     {
         cerr << ex.what() << endl;
         return 1;

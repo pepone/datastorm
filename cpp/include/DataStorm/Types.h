@@ -12,7 +12,8 @@ namespace DataStorm
 {
 
     /**
-     * The discard policy specifies how samples are discarded by readers upon receive.
+     * The discard policy specifies how samples are discarded by readers upon
+     * receive.
      */
     enum struct DiscardPolicy
     {
@@ -20,22 +21,23 @@ namespace DataStorm
         None,
 
         /**
-         * Samples are discared based on the sample timestamp. If the received sample timestamp is older than the
-         * last received sample, the sample is discarded. This ensures that readers will eventually always end up
-         * with the same view of the data if multiple writers are sending samples.
+         * Samples are discared based on the sample timestamp. If the received sample
+         *timestamp is older than the last received sample, the sample is discarded.
+         *This ensures that readers will eventually always end up with the same view
+         *of the data if multiple writers are sending samples.
          **/
         SendTime,
 
         /**
-         * Samples are discarded based on the writer priority. Only samples from the highest priority connected
-         * writers are kept, others are discarded.
+         * Samples are discarded based on the writer priority. Only samples from the
+         * highest priority connected writers are kept, others are discarded.
          */
         Priority
     };
 
     /**
-     * The clear history policy specifies when the history is cleared. The history can be cleared based on the
-     * event of the received sample.
+     * The clear history policy specifies when the history is cleared. The history
+     *can be cleared based on the event of the received sample.
      **/
     enum struct ClearHistoryPolicy
     {
@@ -48,7 +50,8 @@ namespace DataStorm
         /** Clear the sample history when a new sample is received. */
         OnAll,
 
-        /** Clear the sample history when a new sample which is not a partial update is received. */
+        /** Clear the sample history when a new sample which is not a partial update
+           is received. */
         OnAllExceptPartialUpdate,
 
         /** Never clear the sample history. */
@@ -56,7 +59,8 @@ namespace DataStorm
     };
 
     /**
-     * The configuration base class holds configuration options common to readers and writers.
+     * The configuration base class holds configuration options common to readers
+     * and writers.
      *
      * @headerfile DataStorm/DataStorm.h
      */
@@ -66,7 +70,8 @@ namespace DataStorm
         /**
          * Construct a Config object.
          *
-         * The constructor accepts optional parameters for each of the Config data members.
+         * The constructor accepts optional parameters for each of the Config data
+         * members.
          *
          * @param sampleCount The optional sample count.
          * @param sampleLifetime The optional sample lifetime.
@@ -83,21 +88,24 @@ namespace DataStorm
         }
 
         /**
-         * The sampleCount configuration specifies how many samples are kept by the reader or writer in its sample
-         * history. By default, the sample count is unlimited.
+         * The sampleCount configuration specifies how many samples are kept by the
+         * reader or writer in its sample history. By default, the sample count is
+         * unlimited.
          */
         std::optional<int> sampleCount;
 
         /**
-         * The sampleLifetime configuration specifies samples to keep in the writer or reader history based on
-         * their age. Samples with a timestamp older than the sampleLifetime value (in milliseconds) are discarded
-         * from the history. By default, the samples are kept for an unlimited amount of time.
+         * The sampleLifetime configuration specifies samples to keep in the writer or
+         * reader history based on their age. Samples with a timestamp older than the
+         * sampleLifetime value (in milliseconds) are discarded from the history. By
+         * default, the samples are kept for an unlimited amount of time.
          */
         std::optional<int> sampleLifetime;
 
         /**
-         * The clear history policy specifies when samples are removed from the sample history. By default,
-         * samples are removed when a new sample is is received which effectively disables the sample history.
+         * The clear history policy specifies when samples are removed from the sample
+         * history. By default, samples are removed when a new sample is is received
+         * which effectively disables the sample history.
          */
         std::optional<ClearHistoryPolicy> clearHistory;
     };
@@ -115,7 +123,8 @@ namespace DataStorm
         /**
          * Construct a ReaderConfig object.
          *
-         * The constructor accepts optional parameters for each of the ReaderConfig data members.
+         * The constructor accepts optional parameters for each of the ReaderConfig
+         * data members.
          *
          * @param sampleCount The optional sample count.
          * @param sampleLifetime The optional sample lifetime.
@@ -133,7 +142,8 @@ namespace DataStorm
         }
 
         /**
-         * Specifies if and how samples are discarded after being received by a reader.
+         * Specifies if and how samples are discarded after being received by a
+         * reader.
          */
         std::optional<DiscardPolicy> discardPolicy;
     };
@@ -152,7 +162,8 @@ namespace DataStorm
         /**
          * Construct a WriterConfig object.
          *
-         * The constructor accepts optional parameters for each of the WriterConfig data members.
+         * The constructor accepts optional parameters for each of the WriterConfig
+         * data members.
          *
          * @param sampleCount The optional sample count.
          * @param sampleLifetime The optional sample lifetime.
@@ -170,7 +181,8 @@ namespace DataStorm
         }
 
         /**
-         * Specifies the writer priority. The priority is used by readers using the priority discard policy.
+         * Specifies the writer priority. The priority is used by readers using the
+         * priority discard policy.
          */
         std::optional<int> priority;
     };
@@ -190,16 +202,18 @@ namespace DataStorm
     /**
      * The Encoder template provides a method to encode decode user types.
      *
-     * The encoder template can be specialized to provide encoding for types that don't support being encoded with
-     * Ice. By default, the Ice encoding is used if no Encoder template specialization is provided for the type.
+     * The encoder template can be specialized to provide encoding for types that
+     * don't support being encoded with Ice. By default, the Ice encoding is used if
+     * no Encoder template specialization is provided for the type.
      *
      * @headerfile DataStorm/DataStorm.h
      */
     template<typename T, typename Enabler = void> struct Encoder
     {
         /**
-         * Encode the given value. This method encodes the given value and returns the resulting byte sequence.
-         * The communicator parameter is provided to allow the implementation to eventually use the Ice encoding.
+         * Encode the given value. This method encodes the given value and returns the
+         * resulting byte sequence. The communicator parameter is provided to allow
+         * the implementation to eventually use the Ice encoding.
          *
          * @see decode
          *
@@ -213,16 +227,18 @@ namespace DataStorm
     /**
      * The Decoder template provides a method to decode user types.
      *
-     * The decoder template can be specialized to provide decoding for types that don't support being decoded with
-     * Ice. By default, the Ice decoding is used if no Decoder template specialization is provided for the type.
+     * The decoder template can be specialized to provide decoding for types that
+     * don't support being decoded with Ice. By default, the Ice decoding is used if
+     * no Decoder template specialization is provided for the type.
      *
      * @headerfile DataStorm/DataStorm.h
      */
     template<typename T, typename Enabler = void> struct Decoder
     {
         /**
-         * Decode a value. This method decodes the given byte sequence and returns the resulting value. The
-         * communicator parameter is provided to allow the implementation to eventually use the Ice encoding.
+         * Decode a value. This method decodes the given byte sequence and returns the
+         * resulting value. The communicator parameter is provided to allow the
+         * implementation to eventually use the Ice encoding.
          *
          * @see encode
          *
@@ -236,17 +252,18 @@ namespace DataStorm
     /**
      * The Cloner template provides a method to clone user types.
      *
-     * The cloner template can be specialized to provide cloning for types that require special cloning. By
-     * default, the template uses plain C++ copy.
+     * The cloner template can be specialized to provide cloning for types that
+     * require special cloning. By default, the template uses plain C++ copy.
      *
      * @headerfile DataStorm/DataStorm.h
      */
     template<typename T, typename Enabler = void> struct Cloner
     {
         /**
-         * Clone the given value. This helper is used when processing partial update to clone the previous value
-         * and compute the new value with the partial update. The default implementation performs a plain C++ copy
-         * with the copy constructor.
+         * Clone the given value. This helper is used when processing partial update
+         * to clone the previous value and compute the new value with the partial
+         * update. The default implementation performs a plain C++ copy with the copy
+         * constructor.
          *
          * @param value The value to encode
          * @return The cloned value
@@ -316,5 +333,5 @@ namespace DataStorm
         return v;
     }
 
-}
+} // namespace DataStorm
 #endif

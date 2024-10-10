@@ -14,9 +14,10 @@ namespace DataStorm
     template<typename, typename, typename> class Topic;
 
     /**
-     * The exception NodeShutdownException. It's raised by methods which might block waiting for a condition to
-     * occur and after the node has been shutdown. It informs the application that the condition won't occur
-     * because the DataStorm node is being shutdown and will disconnect from other nodes.
+     * The exception NodeShutdownException. It's raised by methods which might block
+     * waiting for a condition to occur and after the node has been shutdown. It
+     * informs the application that the condition won't occur because the DataStorm
+     * node is being shutdown and will disconnect from other nodes.
      *
      * @headerfile DataStorm/DataStorm.h
      */
@@ -29,7 +30,8 @@ namespace DataStorm
     /**
      * The Node class allows creating topic readers and writers.
      *
-     * A Node is the main DataStorm object which allows creating topic readers or writers.
+     * A Node is the main DataStorm object which allows creating topic readers or
+     * writers.
      *
      * @headerfile DataStorm/DataStorm.h
      */
@@ -39,26 +41,27 @@ namespace DataStorm
         /**
          * Construct a DataStorm node.
          *
-         * A node is the main DataStorm object. It is required to construct topics. The node uses the given Ice
-         * communicator.
+         * A node is the main DataStorm object. It is required to construct topics.
+         * The node uses the given Ice communicator.
          *
-         * @param communicator The Ice communicator used by the topic factory for its configuration and
-         *                     communications.
+         * @param communicator The Ice communicator used by the topic factory for its
+         * configuration and communications.
          */
         Node(Ice::CommunicatorPtr communicator);
 
         /**
          * Construct a DataStorm node.
          *
-         * A node is the main DataStorm object. It is required to construct topics. This constructor parses the
-         * command line arguments into Ice properties and initialize a new Node. The constructor initializes the
-         * Ice communicator using the given Ice arguments. If the communicator creation fails, an Ice exception is
-         * raised.
+         * A node is the main DataStorm object. It is required to construct topics.
+         * This constructor parses the command line arguments into Ice properties and
+         * initialize a new Node. The constructor initializes the Ice communicator
+         * using the given Ice arguments. If the communicator creation fails, an Ice
+         * exception is raised.
          *
          * @param argc The number of command line arguments in the argv array.
          * @param argv The command line arguments.
-         * @param iceArgs Additional arguments which are passed to the Ice::initialize function in addition to the
-         *                argc and argv arguments.
+         * @param iceArgs Additional arguments which are passed to the Ice::initialize
+         * function in addition to the argc and argv arguments.
          */
         template<class... T> Node(int& argc, const char* argv[], T&&... iceArgs) : _ownsCommunicator(true)
         {
@@ -68,15 +71,16 @@ namespace DataStorm
         /**
          * Construct a DataStorm node.
          *
-         * A node is the main DataStorm object. It is required to construct topics. This constructor parses the
-         * command line arguments into Ice properties and initialize a new Node. The constructor initializes the
-         * Ice communicator using the given Ice arguments. If the communicator creation fails, an Ice exception is
-         * raised.
+         * A node is the main DataStorm object. It is required to construct topics.
+         * This constructor parses the command line arguments into Ice properties and
+         * initialize a new Node. The constructor initializes the Ice communicator
+         * using the given Ice arguments. If the communicator creation fails, an Ice
+         * exception is raised.
          *
          * @param argc The number of command line arguments in the argv array.
          * @param argv The command line arguments.
-         * @param iceArgs Additional arguments which are passed to the Ice::initialize function in addition to the
-         *                argc and argv arguments.
+         * @param iceArgs Additional arguments which are passed to the Ice::initialize
+         * function in addition to the argc and argv arguments.
          */
         template<class... T> Node(int& argc, char* argv[], T&&... iceArgs) : _ownsCommunicator(true)
         {
@@ -87,15 +91,16 @@ namespace DataStorm
         /**
          * Construct a DataStorm node.
          *
-         * A node is the main DataStorm object. It is required to construct topics. This constructor parses the
-         * command line arguments into Ice properties and initialize a new Node. The constructor initializes the
-         * Ice communicator using the given Ice arguments. If the communicator creation fails, an Ice exception is
-         * raised.
+         * A node is the main DataStorm object. It is required to construct topics.
+         * This constructor parses the command line arguments into Ice properties and
+         * initialize a new Node. The constructor initializes the Ice communicator
+         * using the given Ice arguments. If the communicator creation fails, an Ice
+         * exception is raised.
          *
          * @param argc The number of command line arguments in the argv array.
          * @param argv The command line arguments.
-         * @param iceArgs Additional arguments which are passed to the Ice::initialize function in addition to the
-         *                argc and argv arguments.
+         * @param iceArgs Additional arguments which are passed to the Ice::initialize
+         * function in addition to the argc and argv arguments.
          */
         template<class... T> Node(int& argc, const wchar_t* argv[], T&&... iceArgs) : _ownsCommunicator(true)
         {
@@ -105,15 +110,16 @@ namespace DataStorm
         /**
          * Construct a DataStorm node.
          *
-         * A node is the main DataStorm object. It is required to construct topics. This constructor parses the
-         * command line arguments into Ice properties and initialize a new Node. The constructor initializes the
-         * Ice communicator using the given Ice arguments. If the communicator creation fails, an Ice exception is
-         * raised.
+         * A node is the main DataStorm object. It is required to construct topics.
+         * This constructor parses the command line arguments into Ice properties and
+         * initialize a new Node. The constructor initializes the Ice communicator
+         * using the given Ice arguments. If the communicator creation fails, an Ice
+         * exception is raised.
          *
          * @param argc The number of command line arguments in the argv array.
          * @param argv The command line arguments.
-         * @param iceArgs Additional arguments which are passed to the Ice::initialize function in addition to the
-         *                argc and argv arguments.
+         * @param iceArgs Additional arguments which are passed to the Ice::initialize
+         * function in addition to the argc and argv arguments.
          */
         template<class... T> Node(int& argc, wchar_t* argv[], T&&... iceArgs) : _ownsCommunicator(true)
         {
@@ -124,9 +130,9 @@ namespace DataStorm
         /**
          * Construct a DataStorm node.
          *
-         * A node is the main DataStorm object. It is required to construct topics. The constructor initializes
-         * the Ice communicator using the given arguments. If the communicator creation fails, an Ice exception is
-         * raised.
+         * A node is the main DataStorm object. It is required to construct topics.
+         * The constructor initializes the Ice communicator using the given arguments.
+         * If the communicator creation fails, an Ice exception is raised.
          *
          * @param iceArgs Arguments which are passed to the Ice::initialize function.
          */
@@ -143,13 +149,14 @@ namespace DataStorm
         Node(Node&& node) noexcept;
 
         /**
-         * Node destructor. The node destruction releases associated resources. If the node created the Ice
-         * communicator, the communicator is destroyed.
+         * Node destructor. The node destruction releases associated resources. If the
+         * node created the Ice communicator, the communicator is destroyed.
          */
         ~Node();
 
         /**
-         * Shutdown the node. The shutdown interrupts calls which are waiting for events, writers or readers.
+         * Shutdown the node. The shutdown interrupts calls which are waiting for
+         *events, writers or readers.
          **/
         void shutdown() noexcept;
 
@@ -178,8 +185,9 @@ namespace DataStorm
         Ice::CommunicatorPtr getCommunicator() const noexcept;
 
         /**
-         * Returns the Ice connection associated with a session given a session identifier. Session identifiers are
-         * provided with the sample origin data member as the first tuple element.
+         * Returns the Ice connection associated with a session given a session
+         * identifier. Session identifiers are provided with the sample origin data
+         * member as the first tuple element.
          *
          * @param ident The session identifier.
          * @return The connection associated with the given session
@@ -206,5 +214,5 @@ namespace DataStorm
         template<typename, typename, typename> friend class Topic;
     };
 
-}
+} // namespace DataStorm
 #endif

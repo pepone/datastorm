@@ -6,8 +6,8 @@
 #define DATASTORM_INSTANCE_H
 
 #include "DataStorm/Config.h"
-#include "Ice/Ice.h"
 #include "DataStorm/Contract.h"
+#include "Ice/Ice.h"
 
 #include <cmath>
 #include <mutex>
@@ -136,5 +136,5 @@ namespace DataStormI
         bool _shutdown;
     };
 
-}
+} // namespace DataStormI
 #endif
